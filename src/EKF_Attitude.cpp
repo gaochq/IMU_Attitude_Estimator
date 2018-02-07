@@ -16,10 +16,16 @@ EKF_Attitude::EKF_Attitude(bool approx_prediction, double dt):
 	if (state_X_pro.size() == 0)
 	{
 		Vector_12 state_X_tmp;
+		/*
 		state_X_tmp <<	0.0018, -0.0003, 0.0015,
 						0.0351, -0.0567, -0.0364,
 						0.0093, -0.0012, -0.9998,
 						0.0089, 0.4784, 0.8781;
+		*/
+		state_X_tmp <<	0.0, -0.0, 0.0,
+						0.0, -0.0, -0.0,
+						0.0, -0.0, -0.9998,
+						0.0, 0.0, 1;
 		state_X_pro.push_back(state_X_tmp);
 	}
 

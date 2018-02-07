@@ -24,8 +24,9 @@ public:
 	Mahony_Attitude(Vector_2 PI, double dt);
 	void Params_Change(Vector_2 PI, double dt);
 	void Mahony_Estimate();
+	void Read_SensorData(Vector_9 measurement);
 
-	void Run();
+	Eigen::Quaterniond Run(Vector_9 measurement);
 	void Release();
 	void RequestStop();
 	void RequestStart();

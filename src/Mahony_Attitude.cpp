@@ -30,14 +30,12 @@ namespace IMU
 		angular_vel = cur_measurement.block<3, 1>(0, 0);
 		acc = cur_measurement.block<3, 1>(3, 0);
 		mag = cur_measurement.block<3, 1>(6, 0);
-		acc.normalize();
-		mag.normalize();
 
 		Eigen::Quaterniond quat_temp;
 		Vector_3 x_state, y_state, z_state;
 		Matrix_3 Rotation_matrix;
 		
-		// if the quaternion is empty, the quatenion will be initialized by tha accelerometer and magnetometer
+		// if the quaternion is empty, the quaternion will be initialized by tha accelerometer and magnetometer
 		if (quaternion.empty())
 		{
 			z_state = acc;
@@ -50,7 +48,7 @@ namespace IMU
 		}
 		else
 		{
-			// gedt the error from the measurement from accelerometer and magnetometer
+			// get the error from the measurement from accelerometer and magnetometer
 			quat_temp = quaternion.back();
 			quat_temp.normalized();
 			Rotation_matrix = quat_temp.toRotationMatrix();
@@ -73,6 +71,7 @@ namespace IMU
 			Eigen::Quaterniond Angular_quat;
 			Angular_quat.w() = 0.0;
 			Angular_quat.vec() = Correct_angular;
+
 			// update the quaternion refer to the correct angular
 			Eigen::Quaterniond quat_temp_new;
 			quat_temp_new = QuatMult(quat_temp, Angular_quat);
@@ -83,10 +82,26 @@ namespace IMU
 		}
 	}
 
-	void Mahony_Attitude::Run()
+	void Mahony_Attitude::Read_SensorData(Vector_9 measurement)
+	{
+		Vector_3 gyro_mea, acc_mea, mag_mea;
+		gyro_mea = measurement.block<3, 1>(0, 0);
+		acc_mea = measurement.block<3, 1>(3, 0);
+		mag_mea = measurement.block<3, 1>(6, 0);
+
+		acc_mea.normalize();
+		mag_mea.normalize();
+
+		cur_measurement.block<3, 1>(0, 0) = gyro_mea;
+		cur_measurement.block<3, 1>(3, 0) = acc_mea;
+		cur_measurement.block<3, 1>(6, 0) = mag_mea;
+	}
+
+	Eigen::Quaterniond Mahony_Attitude::Run(Vector_9 measurement)
 	{
 		while (true)
 		{
+            Read_SensorData(measurement);
 			Mahony_Estimate();
 
 			if (Stop())
@@ -100,6 +115,7 @@ namespace IMU
 					#endif
 				}
 			}
+            return quaternion.back();
 		}
 	}
 

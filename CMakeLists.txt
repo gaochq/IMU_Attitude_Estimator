@@ -36,6 +36,3 @@ target_link_libraries(${PROJECT_NAME}
 
 add_executable(Demo demo/Test.cpp)
 target_link_libraries(Demo ${PROJECT_NAME})
-
-add_executable(basic demo/basic.cpp)
-target_link_libraries(basic ${PROJECT_NAME})

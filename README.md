@@ -6,7 +6,7 @@ This project is aimed at estimating the attitude of Attitude Heading and Referen
 - Error State Kalman Filter(ESKF)
 
 
-&emsp;&emsp;[1] [Euston M, Coote P, Mahony R, et al. A complementary filter for attitude estimation of a fixed-wing UAV[C]// Ieee/rsj International Conference on Intelligent Robots and Systems. IEEE, 2008:340-345.](http://xueshu.baidu.com/s?wd=paperuri%3A%28cdfdf7c8bcba54639385fd106ecf617a%29&filter=sc_long_sign&tn=SE_xueshusource_2kduw22v&sc_vurl=http%3A%2F%2Fieeexplore.ieee.org%2Fxpls%2Fabs_all.jsp%3Farnumber%3D4650766&ie=utf-8&sc_us=10281205102711940977)
+&emsp;&emsp;[1] [Mahony R, Hamel T, Pflimlin J M. Nonlinear complementary filters on the special orthogonal group[J]. IEEE Transactions on automatic control, 2008, 53(5): 1203-1218.](http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=4608934)
 
 &emsp;&emsp;[2] [Pixhawk state estimation](https://pixhawk.org/_media/firmware/apps/attitude_estimator_ekf/ekf_excerptmasterthesis.pdf)
 

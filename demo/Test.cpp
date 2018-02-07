@@ -3,8 +3,11 @@
 #include "time.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "EKF_Attitude.h"
+
 #include "Convert.h"
+#include "EKF_Attitude.h"
+#include "Mahony_Attitude.h"
+
 #include "matplotlibcpp.h"
 
 
@@ -19,6 +22,8 @@ int main(int argc, char **argv)
 	measurements =IMU::readFromfile("measurement2.bin");
 
 	IMU::EKF_Attitude EKF_AHRS(true, 0.02);
+    IMU::Mahony_Attitude Mahony(Eigen::Vector2d(0.1, 0.2), 0.02);
+
 	unsigned int i = 0;
 	Eigen::MatrixXd Euler(measurements.rows(), 3);
 
@@ -26,15 +31,16 @@ int main(int argc, char **argv)
 	TicToc tc;
 	do
 	{
-
 		Eigen::MatrixXd measure;
 		Eigen::Quaterniond quaternion;
 		
 		Vector_3 Euler_single;
 
-		quaternion = EKF_AHRS.Run(measurements.row(i).transpose());
+		//quaternion = EKF_AHRS.Run(measurements.row(i).transpose());
+        quaternion = Mahony.Run(measurements.row(i).transpose());
 
 		Euler.row(i) = Quaternion_to_Euler(quaternion).transpose();
+        std::cout << Euler.row(i)<< std::endl;
 
         Index.push_back(i*1.0);
         Roll.push_back(Euler.row(i)[0]);
