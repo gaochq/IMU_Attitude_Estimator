@@ -85,8 +85,8 @@ namespace IMU
 	void Mahony_Attitude::Read_SensorData(Vector_9 measurement)
 	{
 		Vector_3 gyro_mea, acc_mea, mag_mea;
-		gyro_mea = measurement.block<3, 1>(0, 0);
-		acc_mea = measurement.block<3, 1>(3, 0);
+		gyro_mea = measurement.block<3, 1>(3, 0);
+		acc_mea = measurement.block<3, 1>(0, 0);
 		mag_mea = measurement.block<3, 1>(6, 0);
 
 		acc_mea.normalize();

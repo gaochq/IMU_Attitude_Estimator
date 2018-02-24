@@ -7,6 +7,7 @@
 #include "Convert.h"
 #include "EKF_Attitude.h"
 #include "Mahony_Attitude.h"
+#include "ESKF_Attitude.h"
 
 #include "matplotlibcpp.h"
 
@@ -24,6 +25,11 @@ int main(int argc, char **argv)
 	IMU::EKF_Attitude EKF_AHRS(true, 0.02);
     IMU::Mahony_Attitude Mahony(Eigen::Vector2d(0.1, 0.2), 0.02);
 
+    Eigen::Matrix<double, 12, 1> ESKF_InitVec;
+    ESKF_InitVec << 1e-5*Eigen::Vector3d::Ones(), 1e-9*Eigen::Vector3d::Ones(),
+                    1e-3*Eigen::Vector3d::Ones(), 1e-4*Eigen::Vector3d::Ones();
+    IMU::ESKF_Attitude ESKF_AHRS(ESKF_InitVec, 0.02);
+
 	unsigned int i = 0;
 	Eigen::MatrixXd Euler(measurements.rows(), 3);
 
@@ -37,7 +43,8 @@ int main(int argc, char **argv)
 		Vector_3 Euler_single;
 
 		//quaternion = EKF_AHRS.Run(measurements.row(i).transpose());
-        quaternion = Mahony.Run(measurements.row(i).transpose());
+        //quaternion = Mahony.Run(measurements.row(i).transpose());
+        quaternion = ESKF_AHRS.Run(measurements.row(i).transpose());
 
 		Euler.row(i) = Quaternion_to_Euler(quaternion).transpose();
         std::cout << Euler.row(i)<< std::endl;

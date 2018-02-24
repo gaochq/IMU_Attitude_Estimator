@@ -50,7 +50,7 @@ public:
     // read the sensors data and normalize the accelerometer and magnetometer
     void Read_SensorData(Vector_9 measurement);
 
-    void Run(Vector_9 measurement);
+    Eigen::Quaterniond Run(Vector_9 measurement);
     void Release();
     void RequestStop();
     void RequestStart();
