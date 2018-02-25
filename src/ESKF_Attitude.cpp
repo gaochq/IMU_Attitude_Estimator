@@ -14,6 +14,7 @@ ESKF_Attitude::ESKF_Attitude(Vector_12 Covar_Mat, double dt)
     DetAngVel_noise = Covar_Mat.block<3, 1>(3, 0);
     Acc_noise = Covar_Mat.block<3, 1>(6, 0);
     Mag_noise = Covar_Mat.block<3, 1>(9, 0);
+
     CovarMat_Q = Eigen::Matrix<double, 6, 6>::Zero();
     CovarMat_R = Eigen::Matrix<double, 6, 6>::Zero();
 }
@@ -75,10 +76,12 @@ void ESKF_Attitude::NominaState_Predict()
     Vector_3 delta_theta;
     Eigen::Quaterniond quat_temp;
     IMU_State Piror_State = State_Vector.back();
-    delta_theta = 0.5*(Cur_Measurement.block<3, 1>(0, 0) + Last_Measurement.block<3, 1>(0, 0))*deltaT;
-    quat_temp.w() = 0;
+    delta_theta = (0.5*(Cur_Measurement.block<3, 1>(0, 0) + Last_Measurement.block<3, 1>(0, 0)) - Piror_State.Nominal_AngVel)*deltaT;
+
+    quat_temp.w() = 1;
     quat_temp.vec() = 0.5*delta_theta;
-    quat_temp = QuatMult(Piror_State.Nominal_quat, quat_temp);
+    quat_temp = quat_temp*Piror_State.Nominal_quat;
+    quat_temp.normalize();
 
     IMU_State Post_State;
     Post_State.Nominal_quat = quat_temp;
@@ -109,43 +112,32 @@ void ESKF_Attitude::ErrorState_Predict()
     Errstate_temp.block<3, 1>(0, 0) = Piror_State.Error_theta;
     Errstate_temp.block<3, 1>(3, 0) = Piror_State.Error_AngVel;
     Errstate_temp = Trasition_A*Errstate_temp;
-    Piror_State.Error_theta = Errstate_temp.block<3, 1>(0, 0);
-    Piror_State.Error_AngVel = Errstate_temp.block<3, 1>(3, 0);
 
-    Eigen::Matrix<double, 6, 6> CovarMat_Qi;
-    Eigen::Matrix<double, 6, 6> NoiseMat_Fi;
-    CovarMat_Qi.block<3, 3>(0, 0) = CovarMat_Q.block<3, 3>(0, 0)*deltaT*deltaT;
-    CovarMat_Qi.block<3, 3>(3, 3) = CovarMat_Q.block<3, 3>(0, 0)*deltaT;
-    NoiseMat_Fi = Eigen::Matrix<double, 6, 6>::Identity();
+    Post_State.Error_theta = Errstate_temp.block<3, 1>(0, 0);
+    Post_State.Error_AngVel = Errstate_temp.block<3, 1>(3, 0);
+
+    Eigen::Matrix<double, 6, 6> CovarMat_Qi = CovarMat_Q*deltaT;
+    Eigen::Matrix<double, 6, 6> NoiseMat_Fi = Eigen::Matrix<double, 6, 6>::Identity();
 
     Post_State.Error_Convar = Trasition_A*Piror_State.Error_Convar*Trasition_A.transpose() +
-                            NoiseMat_Fi*CovarMat_Qi*NoiseMat_Fi.transpose();
+                                NoiseMat_Fi*CovarMat_Qi*NoiseMat_Fi.transpose();
 
     State_Vector.push_back(Post_State);
 }
 
 Eigen::Matrix<double, 6, 6> ESKF_Attitude::IMU_State::Cal_ObserveMat(Vector_9 measurenment, Vector_6 &residual)
 {
-    Vector_3 True_AccMea, True_MagMre, Mag_global;
-    // Calculate the true measurement
-    // the true accelerometer measurement
-    Eigen::Quaterniond q = Nominal_quat;
-    Matrix_3 RotateMat = Quat_to_Matrix(q);
-    True_AccMea << 0, 0, -1;
-    True_AccMea = RotateMat.transpose()*True_AccMea;
+    Vector_3 True_AccMea, True_MagMre;
+    Eigen::Matrix<double, 4, 1> Mag_global;
 
-    // the true magnetometer measurement
-    True_MagMre = measurenment.block<3, 1>(6, 0);
+    Eigen::Quaterniond q = Nominal_quat;
+
+
     Eigen::Quaterniond Mag_quat(0.0, True_MagMre(0), True_MagMre(1), True_MagMre(2));
     Mag_quat = QuatMult(q, QuatMult(Mag_quat, q.conjugate()));
-    Mag_global << sqrt(Mag_quat.x()*Mag_quat.x() + Mag_quat.y()*Mag_quat.y()),
-                    0,
-                    Mag_quat.z();
-    True_MagMre = RotateMat.transpose()*Mag_global;
 
-    // calculate the residual
-    residual.block<3, 1>(0, 0) = measurenment.block<3, 1>(3, 0) - True_AccMea;
-    residual.block<3, 1>(3, 0) = measurenment.block<3, 1>(6, 0) - True_MagMre;
+    Mag_global << 0, sqrt(Mag_quat.x()*Mag_quat.x() + Mag_quat.y()*Mag_quat.y()),
+                    0, Mag_quat.z();
 
     // calculate the observe Matrix H
     Eigen::Matrix<double, 3, 4> acc_H, mag_H;
@@ -153,12 +145,14 @@ Eigen::Matrix<double, 6, 6> ESKF_Attitude::IMU_State::Cal_ObserveMat(Vector_9 me
                 -2 * q.x(), -2 * q.w(), -2 * q.z(), -2 * q.y(),
                  0, 4 * q.x(), 4 * q.y(), 0;
 
-    mag_H <<    -2 * Mag_global(2)*q.y(), 2 * Mag_global(2)*q.z(),
-                -4 * Mag_global(0)*q.y() - 2 * Mag_global(2)*q.w(), -4 * Mag_global(0)*q.z() + 2 * Mag_global(2)*q.x(),
-                -2 * Mag_global(0)*q.z() + 2 * Mag_global(2)*q.x(), 2 * Mag_global(0)*q.y() + 2 * Mag_global(2)*q.w(),
-                 2 * Mag_global(0)*q.x() + 2 * Mag_global(2)*q.z(), -2 * Mag_global(0)*q.w() + 2 * Mag_global(2)*q.y(),
-                 2 * Mag_global(0)*q.y(), 2 * Mag_global(0)*q.z() - 4 * Mag_global(2)*q.x(),
-                 2 * Mag_global(0)*q.w() - 4 * Mag_global(2)*q.y(), 2 * Mag_global(0)*q.x();
+    mag_H <<    -2 * Mag_global(3)*q.y(), 2 * Mag_global(3)*q.z(),
+                -4 * Mag_global(1)*q.y() - 2 * Mag_global(3)*q.w(), -4 * Mag_global(1)*q.z() + 2 * Mag_global(3)*q.x(),
+
+                -2 * Mag_global(1)*q.z() + 2 * Mag_global(3)*q.x(), 2 * Mag_global(1)*q.y() + 2 * Mag_global(3)*q.w(),
+                 2 * Mag_global(1)*q.x() + 2 * Mag_global(3)*q.z(), -2 * Mag_global(1)*q.w() + 2 * Mag_global(3)*q.y(),
+
+                 2 * Mag_global(1)*q.y(), 2 * Mag_global(1)*q.z() - 4 * Mag_global(3)*q.x(),
+                 2 * Mag_global(1)*q.w() - 4 * Mag_global(3)*q.y(), 2 * Mag_global(1)*q.x();
 
     Eigen::Matrix<double, 6, 7> Observe_Hx;
     Observe_Hx.block<3, 4>(0, 0) = acc_H;
@@ -172,13 +166,28 @@ Eigen::Matrix<double, 6, 6> ESKF_Attitude::IMU_State::Cal_ObserveMat(Vector_9 me
                  q.w(), -q.z(), q.y(),
                  q.z(), q.w(), -q.x(),
                 -q.y(), q.x(), q.w();
-    Observe_Xx.block<4, 3>(0, 0) = Matrix_Q*0.5;
+    Observe_Xx.block<4, 3>(0, 0) = 0.5*Matrix_Q;
     Observe_Xx.block<4, 3>(0, 3) = Eigen::Matrix<double, 4, 3>::Zero();
     Observe_Xx.block<3, 3>(4, 0) = Matrix_3::Zero();
     Observe_Xx.block<3, 3>(4, 3) = Matrix_3::Identity();
 
     Eigen::Matrix<double, 6, 6> Observe_Matrix;
     Observe_Matrix = Observe_Hx*Observe_Xx;
+
+    // Calculate the true measurement
+    // the true accelerometer measurement
+    True_AccMea <<  2*(q.x()*q.z() - q.w()*q.y()),
+                    2*(q.w()*q.x() - q.y()*q.z()),
+                    2*(0.5 - q.x()*q.x() - q.y()*q.y());
+
+    // the true magnetometer measurement
+    True_MagMre <<  2*Mag_global(1)*(0.5 - q.y()*q.y() - q.z()*q.z()) + 2*Mag_global(3)*(q.x()*q.z() - q.w()*q.y()),
+                    2*Mag_global(1)*(q.x()*q.y() - q.w()*q.z()) + 2*Mag_global(3)*(q.w()*q.x() - q.y()*q.z()),
+                    2*Mag_global(1)*(q.w()*q.y() + q.x()*q.z()) + 2*Mag_global(3)*(0.5 - q.x()*q.x() - q.y()*q.y());
+
+    // calculate the residual
+    residual.block<3, 1>(0, 0) = measurenment.block<3, 1>(3, 0) + True_AccMea;
+    residual.block<3, 1>(3, 0) = measurenment.block<3, 1>(6, 0) + True_MagMre;
 
     return Observe_Matrix;
 }
@@ -195,19 +204,17 @@ void ESKF_Attitude::Update_Filter()
     Observe_Matrix = Post_State.Cal_ObserveMat(Cur_Measurement, Residual);
 
     //Calculate the kalman gain
+    Eigen::Matrix<double, 6, 6> Poste_Cov = Post_State.Error_Convar;
     Eigen::Matrix<double, 6, 6> Kalman_Gain;
-    Kalman_Gain = Observe_Matrix*Post_State.Error_Convar*Observe_Matrix.transpose() + CovarMat_R;
-    Kalman_Gain = Post_State.Error_Convar*Observe_Matrix.transpose()*Kalman_Gain.inverse();
+    Kalman_Gain = Observe_Matrix*Poste_Cov*Observe_Matrix.transpose() + CovarMat_R;
+    Kalman_Gain = Poste_Cov*Observe_Matrix.transpose()*Kalman_Gain.inverse();
 
     // update error state
-    Vector_6 Piror_ErrState, Post_ErrState;
-    Piror_ErrState.block<3, 1>(0, 0) = Post_State.Error_theta;
-    Piror_ErrState.block<3, 1>(3, 0) = Post_State.Error_AngVel;
-
-    Post_ErrState = Kalman_Gain*Piror_ErrState;
+    Vector_6 Post_ErrState = Kalman_Gain*Residual;
     Post_State.Error_theta = Post_ErrState.block<3, 1>(0, 0);
     Post_State.Error_AngVel = Post_ErrState.block<3, 1>(3, 0);
-    Post_State.Error_Convar = Kalman_Gain*(Observe_Matrix*Post_State.Error_Convar*Observe_Matrix.transpose() +
+
+    Post_State.Error_Convar = Poste_Cov - Kalman_Gain*(Observe_Matrix*Poste_Cov*Observe_Matrix.transpose() +
                             CovarMat_R)*Kalman_Gain.transpose();
 
     State_Vector.push_back(Post_State);
@@ -218,9 +225,11 @@ void ESKF_Attitude::Update_NomianState()
     IMU_State Post_State = State_Vector.back();
     State_Vector.pop_back();
 
-    Eigen::Quaterniond delta_q = Euler_to_Quaternion(Post_State.Error_theta);
-    Post_State.Nominal_quat = QuatMult(Post_State.Nominal_quat, delta_q);
-    Post_State.Nominal_AngVel = Post_State.Nominal_AngVel + Post_State.Error_theta;
+    Eigen::Quaterniond delta_q = BuildUpdateQuat(Post_State.Error_theta);
+    Post_State.Nominal_quat = Post_State.Nominal_quat*delta_q;
+    Post_State.Nominal_quat.normalize();
+
+    Post_State.Nominal_AngVel = Post_State.Nominal_AngVel + Post_State.Error_AngVel;
 
     State_Vector.push_back(Post_State);
     quaternion.push_back(Post_State.Nominal_quat);
@@ -232,8 +241,8 @@ void ESKF_Attitude::Reset_ErrorState()
     State_Vector.pop_back();
 
     Eigen::Matrix<double, 6, 6> Matrix_G = Eigen::Matrix<double, 6, 6>::Identity();
-    Matrix_3 Ang_Mat = Post_State.Error_theta.asDiagonal();
-    Matrix_G.block<3, 3>(0, 0) = Matrix_3::Identity() - Ang_Mat;
+    //Matrix_3 Ang_Mat = Post_State.Error_theta.asDiagonal();
+    //Matrix_G.block<3, 3>(0, 0) = Matrix_3::Identity() - Ang_Mat;
 
     Post_State.Error_theta = Vector_3::Zero();
     Post_State.Error_AngVel = Vector_3::Zero();
@@ -248,11 +257,10 @@ void ESKF_Attitude::Reset_ErrorState()
 void ESKF_Attitude::Read_SensorData(Vector_9 measurement)
 {
     Vector_3 gyro_mea, acc_mea, mag_mea;
-    gyro_mea = measurement.block<3, 1>(0, 0);
-    acc_mea = measurement.block<3, 1>(3, 0);
+    acc_mea = measurement.block<3, 1>(0, 0);
+    gyro_mea = measurement.block<3, 1>(3, 0);
     mag_mea = measurement.block<3, 1>(6, 0);
 
-    gyro_mea.normalize();
     acc_mea.normalize();
     mag_mea.normalize();
 

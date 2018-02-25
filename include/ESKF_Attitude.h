@@ -66,15 +66,16 @@ private:
     Eigen::Matrix<double, 6, 6> CovarMat_Q;
     Eigen::Matrix<double, 6, 6> CovarMat_R;
 
-    // Nominal state and error state
-    //vector< Eigen::Matrix<double, 7, 1> > Nominal_State;
-    //vector< Eigen::Matrix<double, 6, 1> > Error_State;
-    //vector< Eigen::Matrix<double, 6, 6> > Error_Convar;
+
     struct IMU_State
     {
     public:
-        Eigen::Quaterniond Nominal_quat;
-        Vector_3 Nominal_AngVel;
+
+        //! normal state
+        Eigen::Quaterniond Nominal_quat;        //! quaterion state
+        Vector_3 Nominal_AngVel;                //! Gyro bias state
+
+        //! Error state
         Vector_3 Error_theta;
         Vector_3 Error_AngVel;
         Eigen::Matrix<double, 6, 6> Error_Convar;

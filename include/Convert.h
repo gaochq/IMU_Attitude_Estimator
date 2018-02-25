@@ -40,6 +40,10 @@ Vector_3 Rotation_to_Euler(Matrix_3 Rotation);
 // Rotation matrix to quaternion http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
 Eigen::Quaterniond Rotation_to_Quater(Matrix_3 Rotation);
 
+// Indirect Kalman Filter for 3D Attitude Estimation (Roumeliotis)
+Eigen::Quaterniond BuildUpdateQuat(Eigen::Vector3d DeltaTheta);
+
+
 } //namesapce IMU
 
 #endif
