@@ -80,7 +80,7 @@ void ESKF_Attitude::NominaState_Predict()
 
     quat_temp.w() = 1;
     quat_temp.vec() = 0.5*delta_theta;
-    quat_temp = quat_temp*Piror_State.Nominal_quat;
+    quat_temp = Piror_State.Nominal_quat*quat_temp;
     quat_temp.normalize();
 
     IMU_State Post_State;
@@ -98,8 +98,7 @@ void ESKF_Attitude::ErrorState_Predict()
     // calculate the transition matrix A
     Eigen::Matrix<double, 6, 6> Trasition_A;
     Vector_3 delta_theta;
-    delta_theta = (Cur_Measurement.block<3, 1>(0, 0) - Piror_State.Nominal_AngVel)*deltaT;
-
+    delta_theta = (Last_Measurement.block<3, 1>(0, 0) - Piror_State.Nominal_AngVel)*deltaT;
     Matrix_3 Rotation_Mat = Euler_to_RoatMat(delta_theta);
 
     Trasition_A.block<3, 3>(0, 0) = Rotation_Mat.transpose();
@@ -177,12 +176,12 @@ Eigen::Matrix<double, 6, 6> ESKF_Attitude::IMU_State::Cal_ObserveMat(Vector_9 me
     // Calculate the true measurement
     // the true accelerometer measurement
     True_AccMea <<  2*(q.x()*q.z() - q.w()*q.y()),
-                    2*(q.w()*q.x() - q.y()*q.z()),
+                    2*(q.w()*q.x() + q.y()*q.z()),
                     2*(0.5 - q.x()*q.x() - q.y()*q.y());
 
     // the true magnetometer measurement
     True_MagMre <<  2*Mag_global(1)*(0.5 - q.y()*q.y() - q.z()*q.z()) + 2*Mag_global(3)*(q.x()*q.z() - q.w()*q.y()),
-                    2*Mag_global(1)*(q.x()*q.y() - q.w()*q.z()) + 2*Mag_global(3)*(q.w()*q.x() - q.y()*q.z()),
+                    2*Mag_global(1)*(q.x()*q.y() - q.w()*q.z()) + 2*Mag_global(3)*(q.w()*q.x() + q.y()*q.z()),
                     2*Mag_global(1)*(q.w()*q.y() + q.x()*q.z()) + 2*Mag_global(3)*(0.5 - q.x()*q.x() - q.y()*q.y());
 
     // calculate the residual
@@ -215,7 +214,7 @@ void ESKF_Attitude::Update_Filter()
     Post_State.Error_AngVel = Post_ErrState.block<3, 1>(3, 0);
 
     Post_State.Error_Convar = Poste_Cov - Kalman_Gain*(Observe_Matrix*Poste_Cov*Observe_Matrix.transpose() +
-                            CovarMat_R)*Kalman_Gain.transpose();
+                              CovarMat_R)*Kalman_Gain.transpose();
 
     State_Vector.push_back(Post_State);
 }

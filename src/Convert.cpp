@@ -102,7 +102,7 @@ Matrix_3 Euler_to_RoatMat(Vector_3 Euler)
     double theta;
     Matrix_3 Skew_Euler;
 
-    theta = sqrt(Euler(0)*Euler(0) + Euler(1)*Euler(1) + Euler(2)*Euler(2));
+    theta = Euler.norm();
     Euler.normalize();
 
     Vect_to_SkewMat(Euler, Skew_Euler);
