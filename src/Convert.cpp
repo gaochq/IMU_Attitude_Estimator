@@ -160,18 +160,13 @@ Vector_3 Quaternion_to_Euler(Eigen::Quaterniond q)
 {
     Vector_3 Euler;
 
-
     // the normal way
-
-
 
     Euler(0) = atan2(2 * (q.y()*q.z() + q.w()*q.x()), (q.w()*q.w() - q.x()*q.x() - q.y()*q.y() + q.z()*q.z()));
     Euler(1) = asin(-2 * q.x()*q.z() + 2 * q.w()*q.y());
     Euler(2) = atan2(2 * (q.x()*q.y() + q.w()*q.z()), (q.w()*q.w() + q.x()*q.x() - q.y()*q.y() - q.z()*q.z())) - 8.3*M_PI/180;
 
-
     /*
-
     // using the eigen
 
     q.normalize();

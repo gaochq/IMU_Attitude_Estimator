@@ -20,7 +20,7 @@ namespace plt = matplotlibcpp;
 int main(int argc, char **argv)
 {
 	Eigen::MatrixXd data, measurements, groundtruth;
-    data =IMU::readFromfile("./datasets/NAV1_data.bin");
+    data =IMU::readFromfile("./datasets/NAV2_data.bin");
     if(data.isZero())
         return 0;
 
@@ -53,20 +53,20 @@ int main(int argc, char **argv)
 		quaternion = EKF_AHRS.Run(measurements.row(i).transpose());
         Euler.row(i) = Quaternion_to_Euler(quaternion).transpose();
 
-        /*
+
         quaternion = Mahony.Run(measurements.row(i).transpose());
         Euler1.row(i) = Quaternion_to_Euler(quaternion).transpose();
 
         quaternion = ESKF_AHRS.Run(measurements.row(i).transpose());
         Euler2.row(i) = Quaternion_to_Euler(quaternion).transpose();
-        */
+
 
         Index.push_back(i*1.0);
         Roll.push_back(Euler.row(i)[0]);
         Pitch.push_back(Euler.row(i)[1]);
         Yaw.push_back(Euler.row(i)[2]);
 
-        /*
+
         Roll1.push_back(Euler1.row(i)[0]);
         Pitch1.push_back(Euler1.row(i)[1]);
         Yaw1.push_back(Euler1.row(i)[2]);
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
         Roll_gt.push_back(groundtruth.row(i)[0]);
         Pitch_gt.push_back(groundtruth.row(i)[1]);
         Yaw_gt.push_back(groundtruth.row(i)[2]);
-        */
+
 
 		i++;
 	} while (i<measurements.rows());
@@ -87,9 +87,8 @@ int main(int argc, char **argv)
 	writeTofile(Euler, "Euler.bin");
 
     plt::named_plot("EKF", Index, Roll, "b");
-    plt::named_plot("ESKF", Index, Pitch, "g");
-    plt::named_plot("Groundtruth", Index, Yaw, "r");
-    //plt::named_plot("dd", Index, Pitch, "g");
+    plt::named_plot("ESKF", Index, Roll2, "g");
+    plt::named_plot("Groundtruth", Index, Roll_gt, "r");
     //plt::named_plot("aa", Index, Yaw, "b");
 
 	plt::xlim(0, 1000*20);
