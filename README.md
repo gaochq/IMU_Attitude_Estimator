@@ -24,4 +24,5 @@ sudo apt-get install libgoogle-glog-dev
 
 ### Simple Test
 Simple comparision among three methods. And the params of Mahony filter can be further tuned.
-<img src="Image/All_roll.png" width="50%" height="50%"><img src="Image/EKF-ESKF.png" width="50%" height="50%">
+<img src="Image/All_roll.png" width="50%" height="50%"><img src="Image/EKF-ESKF-Roll.png" width="50%" height="50%">
+<img src="Image/EKF-ESKF-Pitch.png" width="50%" height="50%"><img src="Image/EKF-ESKF.png" width="50%" height="50%">
