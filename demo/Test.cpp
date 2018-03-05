@@ -86,9 +86,9 @@ int main(int argc, char **argv)
 	cout << tc.toc() << "ms" << endl;
 	writeTofile(Euler, "Euler.bin");
 
-    plt::named_plot("EKF", Index, Roll, "b");
-    plt::named_plot("ESKF", Index, Roll2, "g");
-    plt::named_plot("Groundtruth", Index, Roll_gt, "r");
+    plt::named_plot("EKF", Index, Pitch, "b");
+    plt::named_plot("ESKF", Index, Pitch2, "g");
+    plt::named_plot("Groundtruth", Index, Pitch_gt, "r");
     //plt::named_plot("aa", Index, Yaw, "b");
 
 	plt::xlim(0, 1000*20);
