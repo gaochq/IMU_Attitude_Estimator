@@ -7,7 +7,7 @@ include_directories(EIGEN3_INCLUDE_DIR)
 find_package(Glog REQUIRED)
 include_directories(${GLOG_INCLUDE_DIRS})
 
-find_package(PythonLibs 2.7)
+find_package(PythonLibs 3.1)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
